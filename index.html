@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>CRC · Cierre de Actividades 2026</title>
+<meta name="theme-color" content="#00843D">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{--verde:#00843D;--negro:#111;--gris:#888;--borde:#e5e5e5;--rojo:#c62828}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#fff;color:var(--negro)}
+  .wrap{max-width:460px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+  header{padding:36px 24px 8px}
+  .club{font-size:12px;font-weight:700;letter-spacing:2px;color:var(--verde)}
+  header h1{font-size:24px;font-weight:800;margin-top:6px;line-height:1.2}
+  header p{font-size:15px;color:var(--gris);margin-top:6px}
+  main{flex:1;padding:16px 24px 24px}
+  .act{font-size:14px;color:var(--gris);margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid var(--borde)}
+  .act b{color:var(--negro)}
+  .paso{margin-bottom:32px;animation:in .2s ease}
+  @keyframes in{from{opacity:0}to{opacity:1}}
+  .paso label,.paso .q{display:block;font-size:17px;font-weight:700;margin-bottom:12px}
+  .paso small{display:block;color:var(--gris);font-size:13px;margin-top:10px}
+  input[type=text],input[type=password]{width:100%;font-size:18px;padding:14px 0;border:none;border-bottom:2px solid var(--borde);outline:none;border-radius:0;background:transparent}
+  input:focus{border-color:var(--negro)}
+  .sino{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn{border:1.5px solid var(--borde);background:#fff;border-radius:12px;padding:16px 8px;font-size:18px;font-weight:600;cursor:pointer;color:var(--negro)}
+  .btn.sel{background:var(--negro);border-color:var(--negro);color:#fff}
+  .nums{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .nums .btn{padding:14px 0;font-size:20px}
+  .confirmar{width:100%;background:var(--verde);color:#fff;border:none;border-radius:12px;padding:18px;font-size:18px;font-weight:700;cursor:pointer}
+  .confirmar:disabled{background:#e5e5e5;color:#aaa}
+  .resumen{font-size:15px;color:#444;margin-bottom:14px;text-align:center}
+  .ok{text-align:center;padding:40px 0}
+  .ok .check{width:64px;height:64px;border-radius:50%;background:var(--verde);color:#fff;font-size:32px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+  .ok h2{font-size:24px;margin-bottom:10px}
+  .ok p{font-size:16px;color:#444;margin-bottom:6px;line-height:1.4}
+  .ok .chico{font-size:14px;color:var(--gris)}
+  .sec{width:100%;background:#fff;border:1.5px solid var(--borde);border-radius:12px;padding:15px;font-size:16px;font-weight:600;margin-top:28px;cursor:pointer;color:var(--negro)}
+  .lista-act{display:grid;gap:10px}
+  .lista-act .btn{text-align:left;padding:16px}
+  footer{text-align:center;padding:20px;font-size:12px;color:#bbb}
+  footer a{color:#bbb}
+  .err{color:var(--rojo);font-size:14px;margin-top:10px;text-align:center}
+  .demo{background:#f5f5f5;color:#777;font-size:11px;text-align:center;padding:5px}
+  /* PANEL */
+  .total{text-align:center;padding:10px 0 20px}
+  .total .n{font-size:64px;font-weight:800;line-height:1;color:var(--verde)}
+  .total .t{font-size:13px;color:var(--gris);margin-top:6px;letter-spacing:1px}
+  .mini{display:grid;grid-template-columns:repeat(3,1fr);margin-bottom:24px;border-top:1px solid var(--borde);border-bottom:1px solid var(--borde)}
+  .mini div{text-align:center;padding:14px 0}
+  .mini b{display:block;font-size:22px}
+  .mini span{font-size:12px;color:var(--gris)}
+  .card{border-bottom:1px solid var(--borde)}
+  .card-h{display:flex;align-items:center;padding:16px 0;cursor:pointer}
+  .card-h .nom{flex:1;font-weight:700;font-size:16px}
+  .card-h .nom small{display:block;font-weight:400;color:var(--gris);font-size:12px;margin-top:3px}
+  .card-h .tot{font-weight:800;font-size:22px}
+  .card-b{display:none;padding:0 0 12px}
+  .card.open .card-b{display:block}
+  .fila{display:flex;justify-content:space-between;padding:7px 0;font-size:15px}
+  .fila .x{color:var(--gris);font-size:13px}
+  .fila.noasiste{opacity:.4;text-decoration:line-through}
+  .acciones{display:grid;gap:10px;margin-top:24px}
+  .acciones button{background:#fff;color:var(--negro);border:1.5px solid var(--borde);border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer}
+  .acciones button.v{background:var(--negro);color:#fff;border-color:var(--negro)}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--negro);color:#fff;padding:12px 20px;border-radius:24px;font-size:14px;display:none;z-index:9}
+  .hijo{display:flex;gap:10px;align-items:flex-end;margin-bottom:14px}
+  .hijo input{flex:1}
+  .hijo select{font-size:14px;padding:8px 4px;border:none;border-bottom:2px solid var(--borde);background:transparent;color:var(--gris);max-width:120px;border-radius:0}
+  .quitar{border:none;background:none;color:#bbb;font-size:22px;padding:8px 2px;cursor:pointer}
+  .agregar{background:none;border:none;color:var(--verde);font-size:16px;font-weight:600;padding:8px 0;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="demoBar" class="demo" style="display:none">MODO PRUEBA · los datos no se guardan en Supabase</div>
+  <header>
+    <div class="club">CENTRO RECREATIVO CALCHAQUÍ</div>
+    <h1>Cierre de Actividades 2026</h1>
+    <p>Jueves 4 de diciembre · Peña a la canasta</p>
+  </header>
+  <main id="app"></main>
+  <footer>CRC · Centro Recreativo Calchaquí · <a href="#" onclick="irPanel();return false">Comisión</a></footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   CONFIGURACIÓN — completar con los datos de Supabase
+   ========================================================= */
+const SUPABASE_URL = "https://tmouwzrtjbvqyiloyods.supabase.co";
+const SUPABASE_KEY = "sb_publishable_BqHXaXmGl0Px27THUtLcJQ_anBXItji";
+const CLAVE_PANEL  = "crc2026";
+const FECHA_LIMITE = "30 de noviembre";
+
+const ACTIVIDADES = {
+  basquet: { nombre: "Básquet",         emoji: "🏀" },
+  voley:   { nombre: "Vóley",           emoji: "🏐" },
+  patin:   { nombre: "Patín Artístico", emoji: "⛸️" },
+  telas:   { nombre: "Telas",           emoji: "🎪" },
+  baile:   { nombre: "Baile",           emoji: "💃" },
+};
+
+/* ===== Datos: Supabase o modo prueba ===== */
+const DEMO = !SUPABASE_URL || !SUPABASE_KEY;
+const sb = DEMO ? null : supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let memoria = [];
+try { memoria = JSON.parse(localStorage.getItem("crc_demo2") || "[]"); } catch(e){}
+if (DEMO) document.getElementById("demoBar").style.display = "block";
+
+async function guardar(reg){
+  if (DEMO){
+    memoria.push({ ...reg, id: Date.now(), created_at: new Date().toISOString() });
+    try { localStorage.setItem("crc_demo2", JSON.stringify(memoria)); } catch(e){}
+    return;
+  }
+  const { error } = await sb.from("familias").insert(reg);
+  if (error) throw error;
+}
+async function traerTodo(){
+  if (DEMO) return memoria;
+  const { data, error } = await sb.from("familias").select("*").order("created_at");
+  if (error) throw error;
+  return data;
+}
+
+/* ===== Utilidades ===== */
+const $app = document.getElementById("app");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function toast(t){ const el=document.getElementById("toast"); el.textContent=t; el.style.display="block"; setTimeout(()=>el.style.display="none",2200); }
+const baseURL = () => location.origin + location.pathname;
+
+/* ===== Ruteo ===== */
+const params = new URLSearchParams(location.search);
+let actActual = params.get("act");
+if (params.has("panel")) irPanel();
+else if (actActual && ACTIVIDADES[actActual]) vistaForm();
+else vistaInicio();
+
+function vistaInicio(){
+  $app.innerHTML = `
+    <div class="paso"><span class="q">¿En qué actividad está tu hijo/a?</span>
+    <div class="lista-act">
+      ${Object.entries(ACTIVIDADES).map(([k,a]) =>
+        `<button class="btn" onclick="elegirAct('${k}')">${a.nombre}</button>`).join("")}
+    </div></div>`;
+}
+function elegirAct(k){ actActual = k; vistaForm(); }
+
+/* ===== Formulario (una carga por familia) ===== */
+let hijos = [], acomp = null;
+function vistaForm(){
+  hijos = [{ nombre:"", actividad: actActual }];
+  acomp = null;
+  $app.innerHTML = `
+    <div class="act">Actividad: <b>${ACTIVIDADES[actActual].nombre}</b></div>
+    <div class="paso">
+      <span class="q">¿Qué chicos vienen?</span>
+      <div id="hijos"></div>
+      <button class="agregar" onclick="agregarHijo()">+ Agregar otro hijo/a</button>
+    </div>
+    <div class="paso">
+      <span class="q">¿Cuántos acompañantes vienen?</span>
+      <div class="nums" id="nums"></div>
+      <small>Mamá, papá, abuelos… sin contar a los chicos.</small>
+    </div>
+    <div id="fin"></div>`;
+  pintarHijos(); pintarNums(); pintarFin();
+  document.querySelector("#hijos input").focus();
+}
+function opcionesAct(sel){
+  return Object.entries(ACTIVIDADES).map(([k,a]) =>
+    `<option value="${k}" ${k===sel?'selected':''}>${a.nombre}</option>`).join("");
+}
+function pintarHijos(){
+  document.getElementById("hijos").innerHTML = hijos.map((h,i) => `
+    <div class="hijo">
+      <input type="text" placeholder="Nombre y apellido" value="${esc(h.nombre)}" oninput="hijos[${i}].nombre=this.value.trim();pintarFin()" autocomplete="off">
+      <select onchange="hijos[${i}].actividad=this.value">${opcionesAct(h.actividad)}</select>
+      ${i>0?`<button class="quitar" onclick="quitarHijo(${i})">×</button>`:''}
+    </div>`).join("");
+}
+function agregarHijo(){
+  hijos.push({ nombre:"", actividad: actActual });
+  pintarHijos(); pintarFin();
+  const ins = document.querySelectorAll("#hijos input"); ins[ins.length-1].focus();
+}
+function quitarHijo(i){ hijos.splice(i,1); pintarHijos(); pintarFin(); }
+function pintarNums(){
+  document.getElementById("nums").innerHTML = [0,1,2,3,4,5,6,7].map(n =>
+    `<button class="btn ${acomp===n?'sel':''}" onclick="setAcomp(${n})">${n===7?'7+':n}</button>`).join("");
+}
+function setAcomp(n){ acomp = n; pintarNums(); pintarFin(); }
+const hijosValidos = () => hijos.filter(h => h.nombre.length >= 3);
+
+function pintarFin(){
+  const fin = document.getElementById("fin");
+  const hv = hijosValidos();
+  const ok = hv.length > 0 && hv.length === hijos.filter(h=>h.nombre).length && acomp !== null;
+  if (!ok){ fin.innerHTML = `<button class="confirmar" disabled>Confirmar</button>`; return; }
+  const t = hv.length + acomp;
+  fin.innerHTML = `<div class="resumen">Van ${t} persona${t>1?'s':''} (${hv.length} chico${hv.length>1?'s':''} + ${acomp} acompañante${acomp!==1?'s':''})</div>
+    <button class="confirmar" id="btnOk" onclick="enviar()">Confirmar</button><div class="err" id="err"></div>`;
+}
+async function enviar(){
+  const b = document.getElementById("btnOk");
+  b.disabled = true; b.textContent = "Enviando…";
+  try{
+    await guardar({ actividad: actActual, hijos: hijosValidos(), acompanantes: acomp });
+    vistaOk();
+  }catch(e){
+    b.disabled = false; b.textContent = "Confirmar";
+    document.getElementById("err").textContent = "No se pudo enviar. Revisá tu conexión y probá de nuevo.";
+  }
+}
+function vistaOk(){
+  $app.innerHTML = `
+    <div class="ok">
+      <div class="check">✓</div>
+      <h2>¡Listo!</h2>
+      <p>Te esperamos el jueves 4 de diciembre.</p>
+      <p class="chico">Es a la canasta: cada familia trae su comida. La bebida se vende en el club.</p>
+    </div>`;
+}
+
+/* ===== Panel de la Comisión ===== */
+function irPanel(){
+  let ok=false; try{ ok = sessionStorage.getItem("crc_panel")==="1"; }catch(e){}
+  if (ok) return vistaPanel();
+  $app.innerHTML = `
+    <div class="paso"><label>Panel de la Comisión</label>
+    <input type="password" id="clave" placeholder="Clave"></div>
+    <button class="confirmar" onclick="entrar()">Entrar</button><div class="err" id="err"></div>`;
+}
+function entrar(){
+  if (document.getElementById("clave").value === CLAVE_PANEL){
+    try{ sessionStorage.setItem("crc_panel","1"); }catch(e){}
+    vistaPanel();
+  } else document.getElementById("err").textContent = "Clave incorrecta";
+}
+let datos = [];
+async function vistaPanel(){
+  $app.innerHTML = `<p style="text-align:center;padding:30px;color:#888">Cargando…</p>`;
+  try{ datos = await traerTodo(); }catch(e){ $app.innerHTML = `<p class="err">Error al cargar datos</p>`; return; }
+  const chicos = datos.reduce((s,d)=>s+d.hijos.length,0);
+  const acompT = datos.reduce((s,d)=>s+(d.acompanantes||0),0);
+  let cards = "";
+  for (const [k,a] of Object.entries(ACTIVIDADES)){
+    const lista = [];
+    datos.forEach(d => d.hijos.forEach(h => { if (h.actividad===k) lista.push(h.nombre); }));
+    lista.sort((x,y)=>x.localeCompare(y));
+    cards += `
+      <div class="card" onclick="this.classList.toggle('open')">
+        <div class="card-h">
+          <div class="nom">${a.nombre}<small>medallas</small></div>
+          <div class="tot">${lista.length}</div></div>
+        <div class="card-b">${lista.length ? lista.map(n=>`<div class="fila"><span>${esc(n)}</span></div>`).join("")
+          : '<div class="fila"><span class="x">Sin confirmaciones todavía</span></div>'}</div>
+      </div>`;
+  }
+  $app.innerHTML = `
+    <div class="total"><div class="n">${chicos+acompT}</div><div class="t">PERSONAS CONFIRMADAS</div></div>
+    <div class="mini">
+      <div><b>${datos.length}</b><span>Familias</span></div>
+      <div><b>${chicos}</b><span>Chicos</span></div>
+      <div><b>${acompT}</b><span>Acompañantes</span></div>
+    </div>
+    ${cards}
+    <div class="acciones">
+      <button class="v" onclick="vistaPanel()">Actualizar</button>
+      <button onclick="exportar()">Bajar Excel</button>
+      <button onclick="copiarLinks()">Copiar mensajes para encargados</button>
+    </div>`;
+}
+function exportar(){
+  const filas = [["Familia #","Chico/a","Actividad","Acompañantes de la familia","Fecha"]];
+  datos.forEach((d,i) => d.hijos.forEach((h,j) => filas.push([i+1, h.nombre, ACTIVIDADES[h.actividad]?.nombre||h.actividad, j===0?d.acompanantes:"", new Date(d.created_at).toLocaleString("es-AR")])));
+  const csv = "﻿" + filas.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(";")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  a.download = "confirmaciones_cierre_CRC.csv"; a.click();
+}
+function copiarLinks(){
+  const txt = Object.entries(ACTIVIDADES).map(([k,a]) =>
+`${a.emoji} *${a.nombre.toUpperCase()}*
+¡Hola familias! El *jueves 4 de diciembre* hacemos el *Cierre de Actividades del CRC* 🎉 Peña a la canasta, entrega de medallas a todos los chicos 🏅 y video institucional.
+Para organizar mesas y sillas, confirmen asistencia acá (es un minuto) 👇
+${baseURL()}?act=${k}
+Confirmar antes del ${FECHA_LIMITE}. ¡Gracias! 💚🖤`).join("\n\n————————\n\n");
+  navigator.clipboard.writeText(txt).then(()=>toast("Mensajes copiados ✅"), ()=>prompt("Copiá el texto:", txt));
+}
+</script>
+</body>
+</html>
