@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>CRC · Cierre de Actividades 2026</title>
+<title>CRC · Fiesta Fin de Temporada 2026</title>
 <meta name="theme-color" content="#ffffff">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
@@ -15,6 +15,7 @@
   header{padding:36px 24px 8px}
   .club{font-size:12px;font-weight:700;letter-spacing:2px;color:var(--verde)}
   header h1{font-size:24px;font-weight:800;margin-top:6px;line-height:1.2;user-select:none;-webkit-user-select:none;cursor:default}
+  .fecha{display:inline-block;margin-top:10px;background:var(--verde);color:#fff;font-size:15px;font-weight:700;padding:7px 14px;border-radius:20px}
   header p{font-size:15px;color:var(--gris);margin-top:6px}
   main{flex:1;padding:16px 24px 24px}
   .act{font-size:14px;color:var(--gris);margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid var(--borde)}
@@ -115,8 +116,8 @@
   <div id="demoBar" class="demo" style="display:none">MODO PRUEBA · los datos no se guardan en Supabase</div>
   <header>
     <div class="club">CENTRO RECREATIVO CALCHAQUÍ</div>
-    <h1 id="titulo">Cierre de Actividades 2026</h1>
-    <p>Viernes 4 de diciembre · Peña a la canasta</p>
+    <h1 id="titulo">Fiesta Fin de Temporada 2026</h1>
+    <div class="fecha">📅 Viernes 4 de diciembre</div>
   </header>
   <main id="app"></main>
   <footer>Centro Recreativo Calchaquí</footer>
@@ -428,7 +429,7 @@ function excel(){
   if (typeof XLSX === "undefined"){ toast("No cargó el Excel, revisá internet"); return; }
   const c = calcular();
   const wb = XLSX.utils.book_new();
-  const res = [["CRC · Cierre de Actividades 2026 — generado " + hoy()], [],
+  const res = [["CRC · Fiesta Fin de Temporada 2026 — generado " + hoy()], [],
     ["Grupo","Personas"]];
   Object.entries(ACTIVIDADES).forEach(([k,a]) => res.push([a.plural || a.nombre, c.r[k].nombres.length]));
   res.push(["Otros sin nombre (abuelos, amigos…)", c.acomp]);
@@ -453,7 +454,7 @@ function excel(){
 /* ===== PDF (imprimir / guardar como PDF) ===== */
 function cabecera(){
   return `<div class="p-head"><div class="p-escudo">CRC</div>
-    <div><h1>Centro Recreativo Calchaquí</h1><p>Cierre de Actividades 2026 · Viernes 4 de diciembre</p></div></div>`;
+    <div><h1>Centro Recreativo Calchaquí</h1><p>Fiesta Fin de Temporada 2026 · Viernes 4 de diciembre</p></div></div>`;
 }
 function imprimir(html){
   const p = document.getElementById("print");
@@ -489,12 +490,12 @@ function pdfResumen(){
 function copiarLinks(){
   const txt = Object.entries(ACTIVIDADES).map(([k,a]) => a.otros ?
 `💚 *SOCIOS DEL CLUB*
-¡Hola socios! El *viernes 4 de diciembre* hacemos el *Cierre de Actividades del CRC* 🎉 Peña a la canasta y video institucional. ¡Están todos invitados!
+¡Hola socios! El *viernes 4 de diciembre* hacemos la *Fiesta Fin de Temporada del CRC* 🎉 con video institucional. ¡Están todos invitados!
 Para organizar mesas y sillas, confirmen asistencia acá (es un minuto) 👇
 ${baseURL()}
 Antes del ${FECHA_LIMITE}. ¡Gracias! 💚🖤` :
 `${a.emoji} *${a.nombre.toUpperCase()}*
-¡Hola familias y jugadores! El *viernes 4 de diciembre* hacemos el *Cierre de Actividades del CRC* 🎉 Peña a la canasta, entrega de medallas a todos los que participan 🏅 y video institucional.
+¡Hola familias y jugadores! El *viernes 4 de diciembre* hacemos la *Fiesta Fin de Temporada del CRC* 🎉 con entrega de medallas a todos los que participan 🏅 y video institucional.
 Para organizar mesas y sillas, confirmen asistencia acá (es un minuto) 👇
 ${baseURL()}?act=${k}
 Confirmar antes del ${FECHA_LIMITE}. ¡Gracias! 💚🖤`).join("\n\n————————\n\n");
