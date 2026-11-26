@@ -4,8 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>CRC · Cierre de Actividades 2026</title>
-<meta name="theme-color" content="#00843D">
+<meta name="theme-color" content="#ffffff">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
   :root{--verde:#00843D;--negro:#111;--gris:#888;--borde:#e5e5e5;--rojo:#c62828}
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -13,7 +14,7 @@
   .wrap{max-width:460px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
   header{padding:36px 24px 8px}
   .club{font-size:12px;font-weight:700;letter-spacing:2px;color:var(--verde)}
-  header h1{font-size:24px;font-weight:800;margin-top:6px;line-height:1.2}
+  header h1{font-size:24px;font-weight:800;margin-top:6px;line-height:1.2;user-select:none;-webkit-user-select:none;cursor:default}
   header p{font-size:15px;color:var(--gris);margin-top:6px}
   main{flex:1;padding:16px 24px 24px}
   .act{font-size:14px;color:var(--gris);margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid var(--borde)}
@@ -24,11 +25,15 @@
   .paso small{display:block;color:var(--gris);font-size:13px;margin-top:10px}
   input[type=text],input[type=password]{width:100%;font-size:18px;padding:14px 0;border:none;border-bottom:2px solid var(--borde);outline:none;border-radius:0;background:transparent}
   input:focus{border-color:var(--negro)}
-  .sino{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .btn{border:1.5px solid var(--borde);background:#fff;border-radius:12px;padding:16px 8px;font-size:18px;font-weight:600;cursor:pointer;color:var(--negro)}
   .btn.sel{background:var(--negro);border-color:var(--negro);color:#fff}
   .nums{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
   .nums .btn{padding:14px 0;font-size:20px}
+  .hijo{display:flex;gap:10px;align-items:flex-end;margin-bottom:14px}
+  .hijo input{flex:1}
+  .hijo select{font-size:14px;padding:8px 4px;border:none;border-bottom:2px solid var(--borde);background:transparent;color:var(--gris);max-width:110px;border-radius:0}
+  .quitar{border:none;background:none;color:#bbb;font-size:22px;padding:8px 2px;cursor:pointer}
+  .agregar{background:none;border:none;color:var(--verde);font-size:16px;font-weight:600;padding:8px 0;cursor:pointer}
   .confirmar{width:100%;background:var(--verde);color:#fff;border:none;border-radius:12px;padding:18px;font-size:18px;font-weight:700;cursor:pointer}
   .confirmar:disabled{background:#e5e5e5;color:#aaa}
   .resumen{font-size:15px;color:#444;margin-bottom:14px;text-align:center}
@@ -37,11 +42,13 @@
   .ok h2{font-size:24px;margin-bottom:10px}
   .ok p{font-size:16px;color:#444;margin-bottom:6px;line-height:1.4}
   .ok .chico{font-size:14px;color:var(--gris)}
-  .sec{width:100%;background:#fff;border:1.5px solid var(--borde);border-radius:12px;padding:15px;font-size:16px;font-weight:600;margin-top:28px;cursor:pointer;color:var(--negro)}
   .lista-act{display:grid;gap:10px}
   .lista-act .btn{text-align:left;padding:16px}
+  .lista-act .sub{font-size:13px;font-weight:400;color:var(--gris)}
+  .btn.sel .sub{color:#ccc}
+  .aviso{display:block;margin-top:8px;font-size:13px}
+  .aviso a{color:var(--verde);font-weight:600}
   footer{text-align:center;padding:20px;font-size:12px;color:#bbb}
-  footer a{color:#bbb}
   .err{color:var(--rojo);font-size:14px;margin-top:10px;text-align:center}
   .demo{background:#f5f5f5;color:#777;font-size:11px;text-align:center;padding:5px}
   /* PANEL */
@@ -53,24 +60,41 @@
   .mini b{display:block;font-size:22px}
   .mini span{font-size:12px;color:var(--gris)}
   .card{border-bottom:1px solid var(--borde)}
-  .card-h{display:flex;align-items:center;padding:16px 0;cursor:pointer}
+  .card-h{display:flex;align-items:center;gap:10px;padding:16px 0;cursor:pointer}
   .card-h .nom{flex:1;font-weight:700;font-size:16px}
   .card-h .nom small{display:block;font-weight:400;color:var(--gris);font-size:12px;margin-top:3px}
-  .card-h .tot{font-weight:800;font-size:22px}
+  .card-h .tot{font-weight:800;font-size:22px;min-width:36px;text-align:right}
+  .pdf{border:1.5px solid var(--borde);background:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;color:var(--negro)}
   .card-b{display:none;padding:0 0 12px}
   .card.open .card-b{display:block}
   .fila{display:flex;justify-content:space-between;padding:7px 0;font-size:15px}
   .fila .x{color:var(--gris);font-size:13px}
-  .fila.noasiste{opacity:.4;text-decoration:line-through}
   .acciones{display:grid;gap:10px;margin-top:24px}
   .acciones button{background:#fff;color:var(--negro);border:1.5px solid var(--borde);border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer}
   .acciones button.v{background:var(--negro);color:#fff;border-color:var(--negro)}
+  .salir{background:none;border:none;color:var(--gris);font-size:13px;margin-top:18px;cursor:pointer;width:100%}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--negro);color:#fff;padding:12px 20px;border-radius:24px;font-size:14px;display:none;z-index:9}
-  .hijo{display:flex;gap:10px;align-items:flex-end;margin-bottom:14px}
-  .hijo input{flex:1}
-  .hijo select{font-size:14px;padding:8px 4px;border:none;border-bottom:2px solid var(--borde);background:transparent;color:var(--gris);max-width:120px;border-radius:0}
-  .quitar{border:none;background:none;color:#bbb;font-size:22px;padding:8px 2px;cursor:pointer}
-  .agregar{background:none;border:none;color:var(--verde);font-size:16px;font-weight:600;padding:8px 0;cursor:pointer}
+  /* IMPRESIÓN / PDF */
+  #print{display:none}
+  @media print{
+    @page{size:A4;margin:16mm}
+    body.imprimiendo .wrap, body.imprimiendo .toast{display:none!important}
+    body.imprimiendo #print{display:block}
+  }
+  #print{font-family:Arial,Helvetica,sans-serif;color:#000}
+  .p-head{display:flex;align-items:center;gap:14px;border-bottom:3px solid #00843D;padding-bottom:12px;margin-bottom:18px}
+  .p-escudo{width:54px;height:54px;border-radius:50%;background:#00843D;color:#fff;font-weight:900;font-size:16px;display:flex;align-items:center;justify-content:center;border:3px solid #111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .p-head h1{font-size:20px}
+  .p-head p{font-size:12px;color:#555;margin-top:3px}
+  .p-tit{font-size:24px;font-weight:800;margin-bottom:4px}
+  .p-sub{font-size:13px;color:#444;margin-bottom:16px}
+  #print table{width:100%;border-collapse:collapse;font-size:13px}
+  #print th{text-align:left;border-bottom:2px solid #111;padding:6px 4px;font-size:12px;text-transform:uppercase}
+  #print td{border-bottom:1px solid #ccc;padding:7px 4px}
+  #print td.c, #print th.c{text-align:center;width:70px}
+  #print .box{display:inline-block;width:14px;height:14px;border:1.5px solid #111}
+  #print tr.tot td{font-weight:800;border-top:2px solid #111;border-bottom:none}
+  .p-pie{margin-top:20px;font-size:11px;color:#777}
 </style>
 </head>
 <body>
@@ -78,50 +102,58 @@
   <div id="demoBar" class="demo" style="display:none">MODO PRUEBA · los datos no se guardan en Supabase</div>
   <header>
     <div class="club">CENTRO RECREATIVO CALCHAQUÍ</div>
-    <h1>Cierre de Actividades 2026</h1>
+    <h1 id="titulo">Cierre de Actividades 2026</h1>
     <p>Jueves 4 de diciembre · Peña a la canasta</p>
   </header>
   <main id="app"></main>
-  <footer>CRC · Centro Recreativo Calchaquí · <a href="#" onclick="irPanel();return false">Comisión</a></footer>
+  <footer>Centro Recreativo Calchaquí</footer>
 </div>
+<div id="print"></div>
 <div class="toast" id="toast"></div>
 
 <script>
 /* =========================================================
-   CONFIGURACIÓN — completar con los datos de Supabase
+   CONFIGURACIÓN
    ========================================================= */
 const SUPABASE_URL = "https://tmouwzrtjbvqyiloyods.supabase.co";
 const SUPABASE_KEY = "sb_publishable_BqHXaXmGl0Px27THUtLcJQ_anBXItji";
-const CLAVE_PANEL  = "crc2026";
+const CLAVE_DEMO   = "crc2026";   // solo se usa en modo prueba. La clave real está en Supabase.
 const FECHA_LIMITE = "30 de noviembre";
 
 const ACTIVIDADES = {
-  basquet: { nombre: "Básquet",         emoji: "🏀" },
-  voley:   { nombre: "Vóley",           emoji: "🏐" },
-  patin:   { nombre: "Patín Artístico", emoji: "⛸️" },
-  telas:   { nombre: "Telas",           emoji: "🎪" },
-  baile:   { nombre: "Baile",           emoji: "💃" },
+  basquet: { nombre: "Básquet", emoji: "🏀" },
+  voley:   { nombre: "Vóley",   emoji: "🏐" },
+  patin:   { nombre: "Patín",   emoji: "⛸️" },
+  telas:   { nombre: "Telas",   emoji: "🎪" },
+  baile:   { nombre: "Baile",   emoji: "💃" },
+  newcom:  { nombre: "Newcom",  emoji: "🏐" },
+  socio:   { nombre: "Socio", plural: "Socios", sub: "sin hijos en actividades", emoji: "💚", otros: true },
 };
+const DISCIPLINAS = Object.entries(ACTIVIDADES).filter(([k,a]) => !a.otros);
 
 /* ===== Datos: Supabase o modo prueba ===== */
 const DEMO = !SUPABASE_URL || !SUPABASE_KEY;
 const sb = DEMO ? null : supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let memoria = [];
-try { memoria = JSON.parse(localStorage.getItem("crc_demo2") || "[]"); } catch(e){}
+try { memoria = JSON.parse(localStorage.getItem("crc_demo3") || "[]"); } catch(e){}
 if (DEMO) document.getElementById("demoBar").style.display = "block";
 
 async function guardar(reg){
   if (DEMO){
     memoria.push({ ...reg, id: Date.now(), created_at: new Date().toISOString() });
-    try { localStorage.setItem("crc_demo2", JSON.stringify(memoria)); } catch(e){}
+    try { localStorage.setItem("crc_demo3", JSON.stringify(memoria)); } catch(e){}
     return;
   }
   const { error } = await sb.from("familias").insert(reg);
   if (error) throw error;
 }
-async function traerTodo(){
-  if (DEMO) return memoria;
-  const { data, error } = await sb.from("familias").select("*").order("created_at");
+// La lista solo se puede leer con la clave correcta (se verifica en Supabase)
+async function traerTodo(clave){
+  if (DEMO){
+    if (clave !== CLAVE_DEMO) throw new Error("clave");
+    return memoria;
+  }
+  const { data, error } = await sb.rpc("panel_datos", { clave });
   if (error) throw error;
   return data;
 }
@@ -131,54 +163,64 @@ const $app = document.getElementById("app");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function toast(t){ const el=document.getElementById("toast"); el.textContent=t; el.style.display="block"; setTimeout(()=>el.style.display="none",2200); }
 const baseURL = () => location.origin + location.pathname;
+const pl = (n, s, p) => n + ' ' + (n === 1 ? s : (p || s + 's'));
+const hoy = () => new Date().toLocaleString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
 
-/* ===== Ruteo ===== */
+/* ===== Acceso escondido: 4 toques al título ===== */
+let toques = 0, timerToques;
+document.getElementById("titulo").addEventListener("click", () => {
+  toques++;
+  clearTimeout(timerToques);
+  timerToques = setTimeout(() => toques = 0, 1500);
+  if (toques >= 4){ toques = 0; irPanel(); }
+});
+
+/* ===== Ruteo (el arranque está al final del script) ===== */
 const params = new URLSearchParams(location.search);
 let actActual = params.get("act");
-if (params.has("panel")) irPanel();
-else if (actActual && ACTIVIDADES[actActual]) vistaForm();
-else vistaInicio();
 
 function vistaInicio(){
   $app.innerHTML = `
-    <div class="paso"><span class="q">¿En qué actividad está tu hijo/a?</span>
+    <div class="paso"><span class="q">¿Por qué actividad venís?</span>
     <div class="lista-act">
       ${Object.entries(ACTIVIDADES).map(([k,a]) =>
-        `<button class="btn" onclick="elegirAct('${k}')">${a.nombre}</button>`).join("")}
+        `<button class="btn" onclick="elegirAct('${k}')">${a.nombre}${a.sub?` <span class="sub">(${a.sub})</span>`:''}</button>`).join("")}
     </div></div>`;
 }
 function elegirAct(k){ actActual = k; vistaForm(); }
 
-/* ===== Formulario (una carga por familia) ===== */
+/* ===== Formulario ===== */
 let hijos = [], acomp = null;
+const esOtros = () => !!ACTIVIDADES[actActual].otros;
+
 function vistaForm(){
   hijos = [{ nombre:"", actividad: actActual }];
   acomp = null;
+  const o = esOtros();
   $app.innerHTML = `
-    <div class="act">Actividad: <b>${ACTIVIDADES[actActual].nombre}</b></div>
+    <div class="act">${o ? `<b>Socio</b> (sin hijos en actividades)<br><span class="aviso">¿Tenés hijos en alguna actividad? <a href="#" onclick="vistaInicio();return false">Anotate por su actividad</a></span>` : `Actividad: <b>${ACTIVIDADES[actActual].nombre}</b>`}</div>
     <div class="paso">
-      <span class="q">¿Qué chicos vienen?</span>
+      <span class="q">${o ? 'Nombre y apellido' : '¿Qué chicos vienen?'}</span>
       <div id="hijos"></div>
-      <button class="agregar" onclick="agregarHijo()">+ Agregar otro hijo/a</button>
+      ${o ? '' : '<button class="agregar" onclick="agregarHijo()">+ Agregar otro hijo/a</button>'}
     </div>
     <div class="paso">
       <span class="q">¿Cuántos acompañantes vienen?</span>
       <div class="nums" id="nums"></div>
-      <small>Mamá, papá, abuelos… sin contar a los chicos.</small>
+      <small>${o ? 'Familiares o amigos que vienen con vos.' : 'Mamá, papá, abuelos… sin contar a los chicos.'}</small>
     </div>
     <div id="fin"></div>`;
   pintarHijos(); pintarNums(); pintarFin();
-  document.querySelector("#hijos input").focus();
 }
 function opcionesAct(sel){
-  return Object.entries(ACTIVIDADES).map(([k,a]) =>
-    `<option value="${k}" ${k===sel?'selected':''}>${a.nombre}</option>`).join("");
+  return DISCIPLINAS.map(([k,a]) => `<option value="${k}" ${k===sel?'selected':''}>${a.nombre}</option>`).join("");
 }
 function pintarHijos(){
+  const o = esOtros();
   document.getElementById("hijos").innerHTML = hijos.map((h,i) => `
     <div class="hijo">
       <input type="text" placeholder="Nombre y apellido" value="${esc(h.nombre)}" oninput="hijos[${i}].nombre=this.value.trim();pintarFin()" autocomplete="off">
-      <select onchange="hijos[${i}].actividad=this.value">${opcionesAct(h.actividad)}</select>
+      ${o ? '' : `<select onchange="hijos[${i}].actividad=this.value">${opcionesAct(h.actividad)}</select>`}
       ${i>0?`<button class="quitar" onclick="quitarHijo(${i})">×</button>`:''}
     </div>`).join("");
 }
@@ -201,7 +243,9 @@ function pintarFin(){
   const ok = hv.length > 0 && hv.length === hijos.filter(h=>h.nombre).length && acomp !== null;
   if (!ok){ fin.innerHTML = `<button class="confirmar" disabled>Confirmar</button>`; return; }
   const t = hv.length + acomp;
-  fin.innerHTML = `<div class="resumen">Van ${t} persona${t>1?'s':''} (${hv.length} chico${hv.length>1?'s':''} + ${acomp} acompañante${acomp!==1?'s':''})</div>
+  const det = esOtros() ? `vos + ${acomp} acompañante${acomp!==1?'s':''}`
+    : `${hv.length} chico${hv.length>1?'s':''} + ${acomp} acompañante${acomp!==1?'s':''}`;
+  fin.innerHTML = `<div class="resumen">Van ${t} persona${t>1?'s':''} (${det})</div>
     <button class="confirmar" id="btnOk" onclick="enviar()">Confirmar</button><div class="err" id="err"></div>`;
 }
 async function enviar(){
@@ -209,81 +253,173 @@ async function enviar(){
   b.disabled = true; b.textContent = "Enviando…";
   try{
     await guardar({ actividad: actActual, hijos: hijosValidos(), acompanantes: acomp });
-    vistaOk();
+    $app.innerHTML = `
+      <div class="ok">
+        <div class="check">✓</div>
+        <h2>¡Listo!</h2>
+        <p>Te esperamos el jueves 4 de diciembre.</p>
+        <p class="chico">Es a la canasta: cada familia trae su comida. La bebida se vende en el club.</p>
+      </div>`;
   }catch(e){
     b.disabled = false; b.textContent = "Confirmar";
     document.getElementById("err").textContent = "No se pudo enviar. Revisá tu conexión y probá de nuevo.";
   }
 }
-function vistaOk(){
-  $app.innerHTML = `
-    <div class="ok">
-      <div class="check">✓</div>
-      <h2>¡Listo!</h2>
-      <p>Te esperamos el jueves 4 de diciembre.</p>
-      <p class="chico">Es a la canasta: cada familia trae su comida. La bebida se vende en el club.</p>
-    </div>`;
-}
 
 /* ===== Panel de la Comisión ===== */
+let claveOk = null, datos = [];
 function irPanel(){
-  let ok=false; try{ ok = sessionStorage.getItem("crc_panel")==="1"; }catch(e){}
-  if (ok) return vistaPanel();
+  let guardada = null; try{ guardada = sessionStorage.getItem("crc_clave"); }catch(e){}
+  if (guardada){ claveOk = guardada; return vistaPanel(); }
   $app.innerHTML = `
     <div class="paso"><label>Panel de la Comisión</label>
-    <input type="password" id="clave" placeholder="Clave"></div>
-    <button class="confirmar" onclick="entrar()">Entrar</button><div class="err" id="err"></div>`;
+    <input type="password" id="clave" placeholder="Clave" onkeydown="if(event.key==='Enter')entrar()"></div>
+    <button class="confirmar" id="btnEntrar" onclick="entrar()">Entrar</button><div class="err" id="err"></div>
+    <button class="salir" onclick="location.reload()">Volver</button>`;
+  document.getElementById("clave").focus();
 }
-function entrar(){
-  if (document.getElementById("clave").value === CLAVE_PANEL){
-    try{ sessionStorage.setItem("crc_panel","1"); }catch(e){}
-    vistaPanel();
-  } else document.getElementById("err").textContent = "Clave incorrecta";
+async function entrar(){
+  const c = document.getElementById("clave").value;
+  const b = document.getElementById("btnEntrar"); b.disabled = true; b.textContent = "Verificando…";
+  try{
+    datos = await traerTodo(c);
+    claveOk = c;
+    try{ sessionStorage.setItem("crc_clave", c); }catch(e){}
+    pintarPanel();
+  }catch(e){
+    b.disabled = false; b.textContent = "Entrar";
+    document.getElementById("err").textContent = "Clave incorrecta";
+  }
 }
-let datos = [];
+function salirPanel(){ try{ sessionStorage.removeItem("crc_clave"); }catch(e){} location.reload(); }
+
 async function vistaPanel(){
   $app.innerHTML = `<p style="text-align:center;padding:30px;color:#888">Cargando…</p>`;
-  try{ datos = await traerTodo(); }catch(e){ $app.innerHTML = `<p class="err">Error al cargar datos</p>`; return; }
-  const chicos = datos.reduce((s,d)=>s+d.hijos.length,0);
-  const acompT = datos.reduce((s,d)=>s+(d.acompanantes||0),0);
+  try{ datos = await traerTodo(claveOk); pintarPanel(); }
+  catch(e){ try{ sessionStorage.removeItem("crc_clave"); }catch(_){} irPanel(); }
+}
+
+/* Cuentas: medallas por actividad de cada chico; acompañantes por el link con que entró la familia */
+function calcular(){
+  const r = {};
+  Object.keys(ACTIVIDADES).forEach(k => r[k] = { nombres: [], acomp: 0 });
+  datos.forEach(d => {
+    d.hijos.forEach(h => { (r[h.actividad] || r[d.actividad]).nombres.push(h.nombre); });
+    if (r[d.actividad]) r[d.actividad].acomp += (d.acompanantes || 0);
+  });
+  Object.values(r).forEach(x => x.nombres.sort((a,b)=>a.localeCompare(b,"es")));
+  let chicos = 0, otros = 0, acomp = 0;
+  Object.entries(r).forEach(([k,x]) => {
+    if (ACTIVIDADES[k].otros) otros += x.nombres.length; else chicos += x.nombres.length;
+    acomp += x.acomp;
+  });
+  return { r, chicos, otros, acomp, total: chicos + otros + acomp };
+}
+
+function pintarPanel(){
+  const c = calcular();
   let cards = "";
   for (const [k,a] of Object.entries(ACTIVIDADES)){
-    const lista = [];
-    datos.forEach(d => d.hijos.forEach(h => { if (h.actividad===k) lista.push(h.nombre); }));
-    lista.sort((x,y)=>x.localeCompare(y));
+    const x = c.r[k];
+    const pers = x.nombres.length + x.acomp;
+    const sub = a.otros ? `${x.nombres.length} + ${pl(x.acomp,'acompañante')}`
+                        : `${pl(x.nombres.length,'medalla')} · ${pl(pers,'persona')}`;
     cards += `
-      <div class="card" onclick="this.classList.toggle('open')">
-        <div class="card-h">
-          <div class="nom">${a.nombre}<small>medallas</small></div>
-          <div class="tot">${lista.length}</div></div>
-        <div class="card-b">${lista.length ? lista.map(n=>`<div class="fila"><span>${esc(n)}</span></div>`).join("")
+      <div class="card">
+        <div class="card-h" onclick="this.parentNode.classList.toggle('open')">
+          <div class="nom">${a.plural || a.nombre}<small>${sub}</small></div>
+          <button class="pdf" onclick="event.stopPropagation();pdfActividad('${k}')">PDF</button>
+          <div class="tot">${a.otros ? pers : x.nombres.length}</div>
+        </div>
+        <div class="card-b">${x.nombres.length ? x.nombres.map(n=>`<div class="fila"><span>${esc(n)}</span></div>`).join("")
           : '<div class="fila"><span class="x">Sin confirmaciones todavía</span></div>'}</div>
       </div>`;
   }
   $app.innerHTML = `
-    <div class="total"><div class="n">${chicos+acompT}</div><div class="t">PERSONAS CONFIRMADAS</div></div>
+    <div class="total"><div class="n">${c.total}</div><div class="t">PERSONAS CONFIRMADAS</div></div>
     <div class="mini">
-      <div><b>${datos.length}</b><span>Familias</span></div>
-      <div><b>${chicos}</b><span>Chicos</span></div>
-      <div><b>${acompT}</b><span>Acompañantes</span></div>
+      <div><b>${c.chicos}</b><span>Chicos (medallas)</span></div>
+      <div><b>${c.acomp}</b><span>Acompañantes</span></div>
+      <div><b>${c.otros}</b><span>Socios</span></div>
     </div>
     ${cards}
     <div class="acciones">
       <button class="v" onclick="vistaPanel()">Actualizar</button>
-      <button onclick="exportar()">Bajar Excel</button>
+      <button onclick="excel()">Bajar Excel (todo)</button>
+      <button onclick="pdfResumen()">PDF resumen</button>
       <button onclick="copiarLinks()">Copiar mensajes para encargados</button>
-    </div>`;
+    </div>
+    <button class="salir" onclick="salirPanel()">Salir del panel</button>`;
 }
-function exportar(){
-  const filas = [["Familia #","Chico/a","Actividad","Acompañantes de la familia","Fecha"]];
-  datos.forEach((d,i) => d.hijos.forEach((h,j) => filas.push([i+1, h.nombre, ACTIVIDADES[h.actividad]?.nombre||h.actividad, j===0?d.acompanantes:"", new Date(d.created_at).toLocaleString("es-AR")])));
-  const csv = "﻿" + filas.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(";")).join("\n");
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
-  a.download = "confirmaciones_cierre_CRC.csv"; a.click();
+
+/* ===== Excel: Resumen + una hoja por disciplina ===== */
+function excel(){
+  if (typeof XLSX === "undefined"){ toast("No cargó el Excel, revisá internet"); return; }
+  const c = calcular();
+  const wb = XLSX.utils.book_new();
+  const res = [["CRC · Cierre de Actividades 2026 — generado " + hoy()], [],
+    ["Disciplina","Chicos (medallas)","Acompañantes","Total personas"]];
+  Object.entries(ACTIVIDADES).forEach(([k,a]) => {
+    const x = c.r[k];
+    res.push([a.plural || a.nombre, a.otros ? "" : x.nombres.length, x.acomp, x.nombres.length + x.acomp]);
+  });
+  res.push(["TOTAL", c.chicos, c.acomp, c.total]);
+  const ws = XLSX.utils.aoa_to_sheet(res);
+  ws["!cols"] = [{wch:32},{wch:18},{wch:15},{wch:15}];
+  XLSX.utils.book_append_sheet(wb, ws, "Resumen");
+  Object.entries(ACTIVIDADES).forEach(([k,a]) => {
+    const x = c.r[k];
+    const filas = [[(a.plural || a.nombre) + " — " + pl(x.nombres.length, a.otros ? "persona" : "medalla")], [],
+      ["Nº","Nombre y apellido", a.otros ? "" : "Medalla entregada"]];
+    x.nombres.forEach((n,i) => filas.push([i+1, n, ""]));
+    const s = XLSX.utils.aoa_to_sheet(filas);
+    s["!cols"] = [{wch:5},{wch:36},{wch:18}];
+    XLSX.utils.book_append_sheet(wb, s, (a.plural || a.nombre).slice(0,31));
+  });
+  XLSX.writeFile(wb, "CRC_cierre_confirmados.xlsx");
 }
+
+/* ===== PDF (imprimir / guardar como PDF) ===== */
+function cabecera(){
+  return `<div class="p-head"><div class="p-escudo">CRC</div>
+    <div><h1>Centro Recreativo Calchaquí</h1><p>Cierre de Actividades 2026 · Jueves 4 de diciembre</p></div></div>`;
+}
+function imprimir(html){
+  const p = document.getElementById("print");
+  p.innerHTML = html + `<div class="p-pie">Generado el ${hoy()}</div>`;
+  document.body.classList.add("imprimiendo");
+  const fin = () => { document.body.classList.remove("imprimiendo"); window.removeEventListener("afterprint", fin); };
+  window.addEventListener("afterprint", fin);
+  setTimeout(() => { window.print(); setTimeout(fin, 1500); }, 100);
+}
+function pdfActividad(k){
+  const a = ACTIVIDADES[k], x = calcular().r[k];
+  const filas = x.nombres.map((n,i) => `<tr><td style="width:40px">${i+1}</td><td>${esc(n)}</td>${a.otros?'':'<td class="c"><span class="box"></span></td>'}</tr>`).join("")
+    || `<tr><td colspan="3">Sin confirmaciones todavía</td></tr>`;
+  imprimir(`${cabecera()}
+    <div class="p-tit">${a.plural || a.nombre}</div>
+    <div class="p-sub">${a.otros ? `${pl(x.nombres.length,'persona')} + ${pl(x.acomp,'acompañante')}` : `${pl(x.nombres.length,'medalla')} · ${pl(x.acomp,'acompañante')} · ${pl(x.nombres.length + x.acomp,'persona')}`}</div>
+    <table><tr><th>Nº</th><th>Nombre y apellido</th>${a.otros?'':'<th class="c">Medalla</th>'}</tr>${filas}</table>`);
+}
+function pdfResumen(){
+  const c = calcular();
+  const filas = Object.entries(ACTIVIDADES).map(([k,a]) => { const x = c.r[k];
+    return `<tr><td>${a.plural || a.nombre}</td><td class="c">${a.otros?'—':x.nombres.length}</td><td class="c">${x.acomp}</td><td class="c"><b>${x.nombres.length + x.acomp}</b></td></tr>`; }).join("");
+  imprimir(`${cabecera()}
+    <div class="p-tit">Resumen de asistencia</div>
+    <div class="p-sub">${pl(c.total,'persona confirmada','personas confirmadas')}</div>
+    <table><tr><th>Disciplina</th><th class="c">Chicos</th><th class="c">Acomp.</th><th class="c">Total</th></tr>${filas}
+    <tr class="tot"><td>TOTAL</td><td class="c">${c.chicos}</td><td class="c">${c.acomp}</td><td class="c">${c.total}</td></tr></table>`);
+}
+
+/* ===== Mensajes de WhatsApp ===== */
 function copiarLinks(){
-  const txt = Object.entries(ACTIVIDADES).map(([k,a]) =>
+  const txt = Object.entries(ACTIVIDADES).map(([k,a]) => a.otros ?
+`${a.emoji} *SOCIOS DEL CLUB*
+¡Hola socios! El *jueves 4 de diciembre* hacemos el *Cierre de Actividades del CRC* 🎉 Peña a la canasta y video institucional. ¡Están todos invitados!
+Para organizar mesas y sillas, confirmen asistencia acá (es un minuto) 👇
+${baseURL()}
+Antes del ${FECHA_LIMITE}. ¡Gracias! 💚🖤` :
 `${a.emoji} *${a.nombre.toUpperCase()}*
 ¡Hola familias! El *jueves 4 de diciembre* hacemos el *Cierre de Actividades del CRC* 🎉 Peña a la canasta, entrega de medallas a todos los chicos 🏅 y video institucional.
 Para organizar mesas y sillas, confirmen asistencia acá (es un minuto) 👇
@@ -291,6 +427,10 @@ ${baseURL()}?act=${k}
 Confirmar antes del ${FECHA_LIMITE}. ¡Gracias! 💚🖤`).join("\n\n————————\n\n");
   navigator.clipboard.writeText(txt).then(()=>toast("Mensajes copiados ✅"), ()=>prompt("Copiá el texto:", txt));
 }
+
+/* ===== Arranque ===== */
+if (actActual && ACTIVIDADES[actActual]) vistaForm();
+else vistaInicio();
 </script>
 </body>
 </html>
