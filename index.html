@@ -22,6 +22,7 @@
   .paso{margin-bottom:32px;animation:in .2s ease}
   @keyframes in{from{opacity:0}to{opacity:1}}
   .paso label,.paso .q{display:block;font-size:17px;font-weight:700;margin-bottom:12px}
+  .paso small.sub-q{margin:-6px 0 12px}
   .paso small{display:block;color:var(--gris);font-size:13px;margin-top:10px}
   input[type=text],input[type=password]{width:100%;font-size:18px;padding:14px 0;border:none;border-bottom:2px solid var(--borde);outline:none;border-radius:0;background:transparent}
   input:focus{border-color:var(--negro)}
@@ -133,7 +134,7 @@ const ACTIVIDADES = {
   telas:   { nombre: "Telas",   emoji: "🎪" },
   baile:   { nombre: "Baile",   emoji: "💃" },
   newcom:  { nombre: "Newcom",  emoji: "🏐" },
-  socio:   { nombre: "Socio", plural: "Socios", sub: "sin hijos en actividades", emoji: "💚", otros: true },
+  socio:   { nombre: "Socio", plural: "Socios", sub: "no juega ni hace ninguna actividad", emoji: "💚", otros: true },
 };
 const DISCIPLINAS = Object.entries(ACTIVIDADES).filter(([k,a]) => !a.otros);
 
@@ -203,16 +204,17 @@ function vistaForm(){
   acomp = null;
   const o = esOtros();
   $app.innerHTML = `
-    <div class="act">${o ? `<b>Socio</b> (sin hijos en actividades)<br><span class="aviso">¿Tenés hijos en alguna actividad? <a href="#" onclick="vistaInicio();return false">Anotate por su actividad</a></span>` : `Actividad: <b>${ACTIVIDADES[actActual].nombre}</b>`}</div>
+    <div class="act">${o ? `<b>Socio</b> (no juega ni hace ninguna actividad)<br><span class="aviso">¿Jugás o tenés hijos en alguna actividad? <a href="#" onclick="vistaInicio();return false">Anotate por esa actividad</a></span>` : `Actividad: <b>${ACTIVIDADES[actActual].nombre}</b>`}</div>
     <div class="paso">
-      <span class="q">${o ? 'Nombre y apellido' : '¿Qué chicos vienen?'}</span>
+      <span class="q">${o ? 'Nombre y apellido' : '¿Quiénes juegan o hacen la actividad?'}</span>
+      ${o ? '' : '<small class="sub-q">Puede ser tu hijo/a, vos, o los dos.</small>'}
       <div id="hijos"></div>
-      ${o ? '' : '<button class="agregar" onclick="agregarHijo()">+ Agregar otro hijo/a</button>'}
+      ${o ? '' : '<button class="agregar" onclick="agregarHijo()">+ Agregar otra persona</button>'}
     </div>
     <div class="paso">
       <span class="q">¿Cuántos acompañantes vienen?</span>
       <div class="nums" id="nums"></div>
-      <small>${o ? 'Familiares o amigos que vienen con vos.' : 'Mamá, papá, abuelos… sin contar a los chicos.'}</small>
+      <small>${o ? 'Familiares o amigos que vienen con vos.' : 'Los que vienen a acompañar y no juegan.'}</small>
     </div>
     <div id="fin"></div>`;
   pintarHijos(); pintarNums(); pintarFin();
@@ -248,13 +250,13 @@ function pintarFin(){
   const ok = hv.length > 0 && hv.length === hijos.filter(h=>h.nombre).length && acomp !== null;
   if (!ok){
     const corto = hijos.some(h => h.nombre && h.nombre.length < 3);
-    const falta = corto || !hv.length ? (esOtros() ? 'Escribí tu nombre y apellido' : 'Escribí nombre y apellido de cada chico/a')
+    const falta = corto || !hv.length ? (esOtros() ? 'Escribí tu nombre y apellido' : 'Escribí nombre y apellido de cada participante')
                 : acomp === null ? 'Elegí cuántos acompañantes vienen' : '';
     fin.innerHTML = `<button class="confirmar" disabled>Confirmar</button><div class="hint">${falta}</div>`; return;
   }
   const t = hv.length + acomp;
   const det = esOtros() ? `vos + ${acomp} acompañante${acomp!==1?'s':''}`
-    : `${hv.length} chico${hv.length>1?'s':''} + ${acomp} acompañante${acomp!==1?'s':''}`;
+    : `${hv.length} participante${hv.length>1?'s':''} + ${acomp} acompañante${acomp!==1?'s':''}`;
   fin.innerHTML = `<div class="resumen">Van ${t} persona${t>1?'s':''} (${det})</div>
     <button class="confirmar" id="btnOk" onclick="enviar()">Confirmar</button><div class="err" id="err"></div>`;
 }
@@ -373,7 +375,7 @@ function pintarPanel(){
     ${c.repetidos ? `<div class="alerta">Hay nombres repetidos (puede ser una familia que confirmó dos veces). Desplegá la disciplina y borrá el que sobra con la ×.</div>` : ''}
     <div class="total"><div class="n">${c.total}</div><div class="t">PERSONAS CONFIRMADAS</div></div>
     <div class="mini">
-      <div><b>${c.chicos}</b><span>Chicos (medallas)</span></div>
+      <div><b>${c.chicos}</b><span>Participantes</span></div>
       <div><b>${c.acomp}</b><span>Acompañantes</span></div>
       <div><b>${c.otros}</b><span>Socios</span></div>
     </div>
@@ -429,7 +431,7 @@ function excel(){
   const c = calcular();
   const wb = XLSX.utils.book_new();
   const res = [["CRC · Cierre de Actividades 2026 — generado " + hoy()], [],
-    ["Disciplina","Chicos (medallas)","Acompañantes","Total personas"]];
+    ["Disciplina","Participantes (medallas)","Acompañantes","Total personas"]];
   Object.entries(ACTIVIDADES).forEach(([k,a]) => {
     const x = c.r[k];
     res.push([a.plural || a.nombre, a.otros ? "" : x.nombres.length, x.acomp, x.nombres.length + x.acomp]);
@@ -479,7 +481,7 @@ function pdfResumen(){
   imprimir(`${cabecera()}
     <div class="p-tit">Resumen de asistencia</div>
     <div class="p-sub">${pl(c.total,'persona confirmada','personas confirmadas')}</div>
-    <table><tr><th>Disciplina</th><th class="c">Chicos</th><th class="c">Acomp.</th><th class="c">Total</th></tr>${filas}
+    <table><tr><th>Disciplina</th><th class="c">Particip.</th><th class="c">Acomp.</th><th class="c">Total</th></tr>${filas}
     <tr class="tot"><td>TOTAL</td><td class="c">${c.chicos}</td><td class="c">${c.acomp}</td><td class="c">${c.total}</td></tr></table>`);
 }
 
@@ -492,7 +494,7 @@ Para organizar mesas y sillas, confirmen asistencia acá (es un minuto) 👇
 ${baseURL()}
 Antes del ${FECHA_LIMITE}. ¡Gracias! 💚🖤` :
 `${a.emoji} *${a.nombre.toUpperCase()}*
-¡Hola familias! El *viernes 4 de diciembre* hacemos el *Cierre de Actividades del CRC* 🎉 Peña a la canasta, entrega de medallas a todos los chicos 🏅 y video institucional.
+¡Hola familias y jugadores! El *viernes 4 de diciembre* hacemos el *Cierre de Actividades del CRC* 🎉 Peña a la canasta, entrega de medallas a todos los que participan 🏅 y video institucional.
 Para organizar mesas y sillas, confirmen asistencia acá (es un minuto) 👇
 ${baseURL()}?act=${k}
 Confirmar antes del ${FECHA_LIMITE}. ¡Gracias! 💚🖤`).join("\n\n————————\n\n");
