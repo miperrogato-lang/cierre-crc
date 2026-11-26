@@ -74,6 +74,10 @@
   .acciones button.v{background:var(--negro);color:#fff;border-color:var(--negro)}
   .borrar{border:none;background:none;color:#bbb;font-size:22px;line-height:1;padding:0 4px;cursor:pointer}
   .reset{width:100%;background:#fff;color:var(--rojo);border:1.5px solid #f0c4c4;border-radius:12px;padding:14px;font-size:15px;font-weight:600;margin-top:24px;cursor:pointer}
+  .rep{font-size:11px;color:var(--rojo);border:1px solid #f0c4c4;border-radius:6px;padding:1px 6px;margin-left:auto;margin-right:8px;align-self:center}
+  .rojo{color:var(--rojo)}
+  .alerta{background:#fdecec;color:var(--rojo);font-size:13px;border-radius:10px;padding:10px 12px;margin-bottom:14px}
+  .hint{text-align:center;color:var(--gris);font-size:13px;margin-top:10px;min-height:16px}
   .salir{background:none;border:none;color:var(--gris);font-size:13px;margin-top:18px;cursor:pointer;width:100%}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--negro);color:#fff;padding:12px 20px;border-radius:24px;font-size:14px;display:none;z-index:9}
   /* IMPRESIÓN / PDF */
@@ -150,15 +154,14 @@ async function guardar(reg){
   if (error) throw error;
 }
 // La lista solo se puede leer con la clave correcta (se verifica en Supabase)
+// Devuelve { datos } o { error: "mala" | "bloqueado" }. Si falla internet, tira error.
 async function traerTodo(clave){
-  if (DEMO){
-    if (clave !== CLAVE_DEMO) throw new Error("clave");
-    return memoria;
-  }
+  if (DEMO) return clave === CLAVE_DEMO ? { datos: memoria } : { error: "mala" };
   const { data, error } = await sb.rpc("panel_datos", { clave });
   if (error) throw error;
-  return data;
+  return data || { error: "mala" };
 }
+const MSJ_ERROR = { mala: "Clave incorrecta", bloqueado: "Demasiados intentos. El panel quedó trabado 30 minutos." };
 
 /* ===== Utilidades ===== */
 const $app = document.getElementById("app");
@@ -221,7 +224,7 @@ function pintarHijos(){
   const o = esOtros();
   document.getElementById("hijos").innerHTML = hijos.map((h,i) => `
     <div class="hijo">
-      <input type="text" placeholder="Nombre y apellido" value="${esc(h.nombre)}" oninput="hijos[${i}].nombre=this.value.trim();pintarFin()" autocomplete="off">
+      <input type="text" maxlength="80" placeholder="Nombre y apellido" value="${esc(h.nombre)}" oninput="hijos[${i}].nombre=this.value.trim();pintarFin()" autocomplete="off">
       ${o ? '' : `<select onchange="hijos[${i}].actividad=this.value">${opcionesAct(h.actividad)}</select>`}
       ${i>0?`<button class="quitar" onclick="quitarHijo(${i})">×</button>`:''}
     </div>`).join("");
@@ -243,7 +246,12 @@ function pintarFin(){
   const fin = document.getElementById("fin");
   const hv = hijosValidos();
   const ok = hv.length > 0 && hv.length === hijos.filter(h=>h.nombre).length && acomp !== null;
-  if (!ok){ fin.innerHTML = `<button class="confirmar" disabled>Confirmar</button>`; return; }
+  if (!ok){
+    const corto = hijos.some(h => h.nombre && h.nombre.length < 3);
+    const falta = corto || !hv.length ? (esOtros() ? 'Escribí tu nombre y apellido' : 'Escribí nombre y apellido de cada chico/a')
+                : acomp === null ? 'Elegí cuántos acompañantes vienen' : '';
+    fin.innerHTML = `<button class="confirmar" disabled>Confirmar</button><div class="hint">${falta}</div>`; return;
+  }
   const t = hv.length + acomp;
   const det = esOtros() ? `vos + ${acomp} acompañante${acomp!==1?'s':''}`
     : `${hv.length} chico${hv.length>1?'s':''} + ${acomp} acompañante${acomp!==1?'s':''}`;
@@ -283,39 +291,62 @@ function irPanel(){
 async function entrar(){
   const c = document.getElementById("clave").value;
   const b = document.getElementById("btnEntrar"); b.disabled = true; b.textContent = "Verificando…";
-  try{
-    datos = await traerTodo(c);
-    claveOk = c;
-    try{ sessionStorage.setItem("crc_clave", c); }catch(e){}
-    pintarPanel();
-  }catch(e){
-    b.disabled = false; b.textContent = "Entrar";
-    document.getElementById("err").textContent = "Clave incorrecta";
-  }
+  const fallo = t => { b.disabled = false; b.textContent = "Entrar"; document.getElementById("err").textContent = t; };
+  let res;
+  try{ res = await traerTodo(c); }
+  catch(e){ return fallo("Sin conexión. Probá de nuevo."); }
+  if (res.error) return fallo(MSJ_ERROR[res.error] || "Error");
+  datos = res.datos || [];
+  claveOk = c;
+  try{ sessionStorage.setItem("crc_clave", c); }catch(e){}
+  pintarPanel();
 }
 function salirPanel(){ try{ sessionStorage.removeItem("crc_clave"); }catch(e){} location.reload(); }
 
 async function vistaPanel(){
   $app.innerHTML = `<p style="text-align:center;padding:30px;color:#888">Cargando…</p>`;
-  try{ datos = await traerTodo(claveOk); pintarPanel(); }
-  catch(e){ try{ sessionStorage.removeItem("crc_clave"); }catch(_){} irPanel(); }
+  let res;
+  try{ res = await traerTodo(claveOk); }
+  catch(e){ $app.innerHTML = `<p class="err" style="padding:30px 0">Sin conexión.</p><button class="confirmar" onclick="vistaPanel()">Reintentar</button>`; return; }
+  if (res.error){ try{ sessionStorage.removeItem("crc_clave"); }catch(_){} irPanel(); return; }
+  datos = res.datos || [];
+  pintarPanel();
 }
 
 /* Cuentas: medallas por actividad de cada chico; acompañantes por el link con que entró la familia */
 function calcular(){
   const r = {};
   Object.keys(ACTIVIDADES).forEach(k => r[k] = { nombres: [], acomp: 0 });
-  datos.forEach(d => {
-    d.hijos.forEach((h,i) => { (r[h.actividad] || r[d.actividad]).nombres.push({ n: h.nombre, id: d.id, i }); });
-    if (r[d.actividad]) r[d.actividad].acomp += (d.acompanantes || 0);
+  // Tolerante: cualquier dato raro se ignora en vez de romper el panel
+  (Array.isArray(datos) ? datos : []).forEach(d => {
+    if (!d || !Array.isArray(d.hijos)) return;
+    let base = r[d.actividad] ? d.actividad : null;
+    d.hijos.forEach((h,i) => {
+      const n = String((h && h.nombre) || "").trim();
+      const k = h && r[h.actividad] ? h.actividad : base;
+      if (!n || !k) return;
+      if (!base) base = k;
+      r[k].nombres.push({ n, id: d.id, i });
+    });
+    const a = Math.min(20, Math.max(0, parseInt(d.acompanantes) || 0));
+    if (base) r[base].acomp += a;
   });
-  Object.values(r).forEach(x => x.nombres.sort((a,b)=>a.n.localeCompare(b.n,"es")));
+  // Repetidos: mismo nombre en la misma disciplina
+  const norm = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim();
+  Object.values(r).forEach(x => {
+    const cuenta = {};
+    x.nombres.forEach(o => { const t = norm(o.n); cuenta[t] = (cuenta[t]||0) + 1; });
+    x.nombres.forEach(o => o.rep = cuenta[norm(o.n)] > 1);
+    x.repetidos = x.nombres.filter(o => o.rep).length;
+    x.nombres.sort((a,b)=>a.n.localeCompare(b.n,"es"));
+  });
   let chicos = 0, otros = 0, acomp = 0;
   Object.entries(r).forEach(([k,x]) => {
     if (ACTIVIDADES[k].otros) otros += x.nombres.length; else chicos += x.nombres.length;
     acomp += x.acomp;
   });
-  return { r, chicos, otros, acomp, total: chicos + otros + acomp };
+  const repetidos = Object.values(r).reduce((s,x)=>s+x.repetidos,0);
+  return { r, chicos, otros, acomp, repetidos, total: chicos + otros + acomp };
 }
 
 function pintarPanel(){
@@ -326,18 +357,20 @@ function pintarPanel(){
     const pers = x.nombres.length + x.acomp;
     const sub = a.otros ? `${x.nombres.length} + ${pl(x.acomp,'acompañante')}`
                         : `${pl(x.nombres.length,'medalla')} · ${pl(pers,'persona')}`;
+    const subRep = x.repetidos ? ` · <span class="rojo">${pl(x.repetidos,'repetido')}</span>` : '';
     cards += `
       <div class="card ${abierta===k?'open':''}">
         <div class="card-h" onclick="this.parentNode.classList.toggle('open');abierta=this.parentNode.classList.contains('open')?'${k}':null">
-          <div class="nom">${a.plural || a.nombre}<small>${sub}</small></div>
+          <div class="nom">${a.plural || a.nombre}<small>${sub}${subRep}</small></div>
           <button class="pdf" onclick="event.stopPropagation();pdfActividad('${k}')">PDF</button>
           <div class="tot">${a.otros ? pers : x.nombres.length}</div>
         </div>
-        <div class="card-b">${x.nombres.length ? x.nombres.map(n=>`<div class="fila"><span>${esc(n.n)}</span><button class="borrar" onclick="borrarUno(${n.id},${n.i},'${k}',this)">×</button></div>`).join("")
+        <div class="card-b">${x.nombres.length ? x.nombres.map(n=>`<div class="fila"><span>${esc(n.n)}</span>${n.rep?'<span class="rep">repetido</span>':''}<button class="borrar" onclick="borrarUno(${n.id},${n.i},'${k}',this)">×</button></div>`).join("")
           : '<div class="fila"><span class="x">Sin confirmaciones todavía</span></div>'}</div>
       </div>`;
   }
   $app.innerHTML = `
+    ${c.repetidos ? `<div class="alerta">Hay nombres repetidos (puede ser una familia que confirmó dos veces). Desplegá la disciplina y borrá el que sobra con la ×.</div>` : ''}
     <div class="total"><div class="n">${c.total}</div><div class="t">PERSONAS CONFIRMADAS</div></div>
     <div class="mini">
       <div><b>${c.chicos}</b><span>Chicos (medallas)</span></div>
@@ -359,7 +392,7 @@ function pintarPanel(){
 /* ===== Borrar ===== */
 let abierta = null;
 async function borrarUno(id, i, k, el){
-  const nombre = el.previousElementSibling.textContent;
+  const nombre = el.parentNode.firstElementChild.textContent;
   if (!confirm(`¿Borrar a ${nombre}?`)) return;
   try{
     if (DEMO){
@@ -368,8 +401,9 @@ async function borrarUno(id, i, k, el){
       if (!d.hijos.length) memoria = memoria.filter(x => x.id !== id);
       try{ localStorage.setItem("crc_demo3", JSON.stringify(memoria)); }catch(e){}
     } else {
-      const { error } = await sb.rpc("panel_borrar_uno", { clave: claveOk, fam_id: id, idx: i });
+      const { data, error } = await sb.rpc("panel_borrar_uno", { clave: claveOk, fam_id: id, idx: i });
       if (error) throw error;
+      if (data && data.error){ toast(MSJ_ERROR[data.error] || "No se pudo borrar"); return; }
     }
     abierta = k; toast("Borrado"); vistaPanel();
   }catch(e){ toast("No se pudo borrar"); }
@@ -381,8 +415,9 @@ async function borrarTodo(){
   try{
     if (DEMO){ memoria = []; try{ localStorage.setItem("crc_demo3","[]"); }catch(e){} }
     else {
-      const { error } = await sb.rpc("panel_borrar_todo", { clave: claveOk });
+      const { data, error } = await sb.rpc("panel_borrar_todo", { clave: claveOk });
       if (error) throw error;
+      if (data && data.error){ toast(MSJ_ERROR[data.error] || "No se pudo borrar"); return; }
     }
     toast("Todo borrado"); vistaPanel();
   }catch(e){ toast("No se pudo borrar"); }
