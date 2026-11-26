@@ -72,6 +72,8 @@
   .acciones{display:grid;gap:10px;margin-top:24px}
   .acciones button{background:#fff;color:var(--negro);border:1.5px solid var(--borde);border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer}
   .acciones button.v{background:var(--negro);color:#fff;border-color:var(--negro)}
+  .borrar{border:none;background:none;color:#bbb;font-size:22px;line-height:1;padding:0 4px;cursor:pointer}
+  .reset{width:100%;background:#fff;color:var(--rojo);border:1.5px solid #f0c4c4;border-radius:12px;padding:14px;font-size:15px;font-weight:600;margin-top:24px;cursor:pointer}
   .salir{background:none;border:none;color:var(--gris);font-size:13px;margin-top:18px;cursor:pointer;width:100%}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--negro);color:#fff;padding:12px 20px;border-radius:24px;font-size:14px;display:none;z-index:9}
   /* IMPRESIÓN / PDF */
@@ -304,10 +306,10 @@ function calcular(){
   const r = {};
   Object.keys(ACTIVIDADES).forEach(k => r[k] = { nombres: [], acomp: 0 });
   datos.forEach(d => {
-    d.hijos.forEach(h => { (r[h.actividad] || r[d.actividad]).nombres.push(h.nombre); });
+    d.hijos.forEach((h,i) => { (r[h.actividad] || r[d.actividad]).nombres.push({ n: h.nombre, id: d.id, i }); });
     if (r[d.actividad]) r[d.actividad].acomp += (d.acompanantes || 0);
   });
-  Object.values(r).forEach(x => x.nombres.sort((a,b)=>a.localeCompare(b,"es")));
+  Object.values(r).forEach(x => x.nombres.sort((a,b)=>a.n.localeCompare(b.n,"es")));
   let chicos = 0, otros = 0, acomp = 0;
   Object.entries(r).forEach(([k,x]) => {
     if (ACTIVIDADES[k].otros) otros += x.nombres.length; else chicos += x.nombres.length;
@@ -325,13 +327,13 @@ function pintarPanel(){
     const sub = a.otros ? `${x.nombres.length} + ${pl(x.acomp,'acompañante')}`
                         : `${pl(x.nombres.length,'medalla')} · ${pl(pers,'persona')}`;
     cards += `
-      <div class="card">
-        <div class="card-h" onclick="this.parentNode.classList.toggle('open')">
+      <div class="card ${abierta===k?'open':''}">
+        <div class="card-h" onclick="this.parentNode.classList.toggle('open');abierta=this.parentNode.classList.contains('open')?'${k}':null">
           <div class="nom">${a.plural || a.nombre}<small>${sub}</small></div>
           <button class="pdf" onclick="event.stopPropagation();pdfActividad('${k}')">PDF</button>
           <div class="tot">${a.otros ? pers : x.nombres.length}</div>
         </div>
-        <div class="card-b">${x.nombres.length ? x.nombres.map(n=>`<div class="fila"><span>${esc(n)}</span></div>`).join("")
+        <div class="card-b">${x.nombres.length ? x.nombres.map(n=>`<div class="fila"><span>${esc(n.n)}</span><button class="borrar" onclick="borrarUno(${n.id},${n.i},'${k}',this)">×</button></div>`).join("")
           : '<div class="fila"><span class="x">Sin confirmaciones todavía</span></div>'}</div>
       </div>`;
   }
@@ -349,7 +351,41 @@ function pintarPanel(){
       <button onclick="pdfResumen()">PDF resumen</button>
       <button onclick="copiarLinks()">Copiar mensajes para encargados</button>
     </div>
+    <button class="reset" onclick="borrarTodo()">Borrar todo</button>
     <button class="salir" onclick="salirPanel()">Salir del panel</button>`;
+}
+
+
+/* ===== Borrar ===== */
+let abierta = null;
+async function borrarUno(id, i, k, el){
+  const nombre = el.previousElementSibling.textContent;
+  if (!confirm(`¿Borrar a ${nombre}?`)) return;
+  try{
+    if (DEMO){
+      const d = memoria.find(x => x.id === id);
+      d.hijos.splice(i,1);
+      if (!d.hijos.length) memoria = memoria.filter(x => x.id !== id);
+      try{ localStorage.setItem("crc_demo3", JSON.stringify(memoria)); }catch(e){}
+    } else {
+      const { error } = await sb.rpc("panel_borrar_uno", { clave: claveOk, fam_id: id, idx: i });
+      if (error) throw error;
+    }
+    abierta = k; toast("Borrado"); vistaPanel();
+  }catch(e){ toast("No se pudo borrar"); }
+}
+async function borrarTodo(){
+  const t = prompt("Esto borra TODAS las confirmaciones.\nPara confirmar escribí BORRAR");
+  if (t === null) return;
+  if (t.trim().toUpperCase() !== "BORRAR"){ toast("No se borró nada"); return; }
+  try{
+    if (DEMO){ memoria = []; try{ localStorage.setItem("crc_demo3","[]"); }catch(e){} }
+    else {
+      const { error } = await sb.rpc("panel_borrar_todo", { clave: claveOk });
+      if (error) throw error;
+    }
+    toast("Todo borrado"); vistaPanel();
+  }catch(e){ toast("No se pudo borrar"); }
 }
 
 /* ===== Excel: Resumen + una hoja por disciplina ===== */
@@ -371,7 +407,7 @@ function excel(){
     const x = c.r[k];
     const filas = [[(a.plural || a.nombre) + " — " + pl(x.nombres.length, a.otros ? "persona" : "medalla")], [],
       ["Nº","Nombre y apellido", a.otros ? "" : "Medalla entregada"]];
-    x.nombres.forEach((n,i) => filas.push([i+1, n, ""]));
+    x.nombres.forEach((n,i) => filas.push([i+1, n.n, ""]));
     const s = XLSX.utils.aoa_to_sheet(filas);
     s["!cols"] = [{wch:5},{wch:36},{wch:18}];
     XLSX.utils.book_append_sheet(wb, s, (a.plural || a.nombre).slice(0,31));
@@ -394,7 +430,7 @@ function imprimir(html){
 }
 function pdfActividad(k){
   const a = ACTIVIDADES[k], x = calcular().r[k];
-  const filas = x.nombres.map((n,i) => `<tr><td style="width:40px">${i+1}</td><td>${esc(n)}</td>${a.otros?'':'<td class="c"><span class="box"></span></td>'}</tr>`).join("")
+  const filas = x.nombres.map((n,i) => `<tr><td style="width:40px">${i+1}</td><td>${esc(n.n)}</td>${a.otros?'':'<td class="c"><span class="box"></span></td>'}</tr>`).join("")
     || `<tr><td colspan="3">Sin confirmaciones todavía</td></tr>`;
   imprimir(`${cabecera()}
     <div class="p-tit">${a.plural || a.nombre}</div>
