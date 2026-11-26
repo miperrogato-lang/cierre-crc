@@ -103,7 +103,7 @@
   <header>
     <div class="club">CENTRO RECREATIVO CALCHAQUÍ</div>
     <h1 id="titulo">Cierre de Actividades 2026</h1>
-    <p>Jueves 4 de diciembre · Peña a la canasta</p>
+    <p>Viernes 4 de diciembre · Peña a la canasta</p>
   </header>
   <main id="app"></main>
   <footer>Centro Recreativo Calchaquí</footer>
@@ -257,7 +257,7 @@ async function enviar(){
       <div class="ok">
         <div class="check">✓</div>
         <h2>¡Listo!</h2>
-        <p>Te esperamos el jueves 4 de diciembre.</p>
+        <p>Te esperamos el viernes 4 de diciembre.</p>
         <p class="chico">Es a la canasta: cada familia trae su comida. La bebida se vende en el club.</p>
       </div>`;
   }catch(e){
@@ -382,7 +382,7 @@ function excel(){
 /* ===== PDF (imprimir / guardar como PDF) ===== */
 function cabecera(){
   return `<div class="p-head"><div class="p-escudo">CRC</div>
-    <div><h1>Centro Recreativo Calchaquí</h1><p>Cierre de Actividades 2026 · Jueves 4 de diciembre</p></div></div>`;
+    <div><h1>Centro Recreativo Calchaquí</h1><p>Cierre de Actividades 2026 · Viernes 4 de diciembre</p></div></div>`;
 }
 function imprimir(html){
   const p = document.getElementById("print");
@@ -416,12 +416,12 @@ function pdfResumen(){
 function copiarLinks(){
   const txt = Object.entries(ACTIVIDADES).map(([k,a]) => a.otros ?
 `${a.emoji} *SOCIOS DEL CLUB*
-¡Hola socios! El *jueves 4 de diciembre* hacemos el *Cierre de Actividades del CRC* 🎉 Peña a la canasta y video institucional. ¡Están todos invitados!
+¡Hola socios! El *viernes 4 de diciembre* hacemos el *Cierre de Actividades del CRC* 🎉 Peña a la canasta y video institucional. ¡Están todos invitados!
 Para organizar mesas y sillas, confirmen asistencia acá (es un minuto) 👇
 ${baseURL()}
 Antes del ${FECHA_LIMITE}. ¡Gracias! 💚🖤` :
 `${a.emoji} *${a.nombre.toUpperCase()}*
-¡Hola familias! El *jueves 4 de diciembre* hacemos el *Cierre de Actividades del CRC* 🎉 Peña a la canasta, entrega de medallas a todos los chicos 🏅 y video institucional.
+¡Hola familias! El *viernes 4 de diciembre* hacemos el *Cierre de Actividades del CRC* 🎉 Peña a la canasta, entrega de medallas a todos los chicos 🏅 y video institucional.
 Para organizar mesas y sillas, confirmen asistencia acá (es un minuto) 👇
 ${baseURL()}?act=${k}
 Confirmar antes del ${FECHA_LIMITE}. ¡Gracias! 💚🖤`).join("\n\n————————\n\n");
