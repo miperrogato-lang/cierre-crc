@@ -36,6 +36,8 @@
   .hijo select{font-size:14px;padding:8px 4px;border:none;border-bottom:2px solid var(--borde);background:transparent;color:var(--gris);max-width:110px;border-radius:0}
   .quitar{border:none;background:none;color:#bbb;font-size:22px;padding:8px 2px;cursor:pointer}
   .agregar{background:none;border:none;color:var(--verde);font-size:16px;font-weight:600;padding:8px 0;cursor:pointer}
+  .lbl{font-size:15px;font-weight:700;margin-top:10px}
+  .lbl2{font-size:13px;color:var(--gris);margin-bottom:8px}
   .persona{border:1.5px solid var(--borde);border-radius:14px;padding:6px 14px 14px;margin-bottom:12px}
   .fila-nom{display:flex;align-items:center;gap:8px;margin-bottom:10px}
   .fila-nom input{flex:1}
@@ -141,7 +143,7 @@ const ACTIVIDADES = {
   telas:   { nombre: "Telas",   emoji: "🎪" },
   baile:   { nombre: "Baile",   emoji: "💃" },
   newcom:  { nombre: "Newcom",  emoji: "🏐" },
-  socio:   { nombre: "Ninguna actividad", plural: "Sin actividad", emoji: "💚", otros: true },
+  socio:   { nombre: "Socio (no juega)", plural: "Socios", emoji: "💚", otros: true },
 };
 const DISCIPLINAS = Object.entries(ACTIVIDADES).filter(([k,a]) => !a.otros);
 
@@ -200,14 +202,12 @@ function vistaForm(){
   extra = 0;
   $app.innerHTML = `
     <div class="paso">
-      <span class="q">¿Quiénes van?</span>
-      <small class="sub-q">Poné el nombre de cada uno y tocá qué hace en el club.</small>
       <div id="personas"></div>
-      <button class="agregar" onclick="agregarPersona()">+ Agregar persona</button>
+      <button class="agregar" onclick="agregarPersona()">+ Agregar otro jugador/a</button>
     </div>
     <div class="paso">
-      <span class="q">¿Viene alguien más?</span>
-      <small class="sub-q">Abuelos, amigos… no hace falta el nombre.</small>
+      <span class="q">Acompañantes</span>
+      <small class="sub-q">Mamá, papá, amigos… los que no juegan.</small>
       <div class="nums" id="nums"></div>
     </div>
     <div id="fin"></div>`;
@@ -216,10 +216,12 @@ function vistaForm(){
 function pintarPersonas(){
   document.getElementById("personas").innerHTML = personas.map((p,i) => `
     <div class="persona">
+      <div class="lbl">Nombre y apellido del jugador/a</div>
       <div class="fila-nom">
-        <input type="text" maxlength="80" placeholder="Nombre y apellido" value="${esc(p.nombre)}" oninput="personas[${i}].nombre=this.value.trim();pintarFin()" autocomplete="off">
+        <input type="text" maxlength="80" placeholder="Ej: Juan Pérez" value="${esc(p.nombre)}" oninput="personas[${i}].nombre=this.value.trim();pintarFin()" autocomplete="off">
         ${i>0?`<button class="quitar" onclick="quitarPersona(${i})" aria-label="Quitar">×</button>`:''}
       </div>
+      <div class="lbl2">Tocá la disciplina:</div>
       <div class="chips">
         ${Object.entries(ACTIVIDADES).map(([k,a]) =>
           `<button class="chip ${p.actividad===k?'sel':''}" onclick="elegir(${i},'${k}')">${a.nombre}</button>`).join("")}
@@ -242,11 +244,11 @@ function setExtra(n){ extra = n; pintarNums(); pintarFin(); }
 const cargadas = () => personas.filter(p => p.nombre);   // los renglones vacíos se ignoran
 function problema(){
   const c = cargadas();
-  if (!c.length) return "Escribí el nombre de quien va";
+  if (!c.length) return "Escribí el nombre del jugador/a";
   const corto = c.find(p => p.nombre.length < 3);
   if (corto) return "Escribí nombre y apellido";
   const sin = c.find(p => !p.actividad);
-  if (sin) return `Tocá qué hace en el club ${sin.nombre.split(" ")[0]}`;
+  if (sin) return `Tocá la disciplina de ${sin.nombre.split(" ")[0]}`;
   return "";
 }
 function pintarFin(){
@@ -357,7 +359,7 @@ function pintarPanel(){
   let cards = "";
   for (const [k,a] of Object.entries(ACTIVIDADES)){
     const x = c.r[k];
-    const sub = a.otros ? 'socios, comisión y familiares' : pl(x.nombres.length,'medalla');
+    const sub = a.otros ? 'socios que no juegan' : pl(x.nombres.length,'medalla');
     const subRep = x.repetidos ? ` · <span class="rojo">${pl(x.repetidos,'repetido')}</span>` : '';
     cards += `
       <div class="card ${abierta===k?'open':''}">
@@ -375,8 +377,8 @@ function pintarPanel(){
     <div class="total"><div class="n">${c.total}</div><div class="t">PERSONAS CONFIRMADAS</div></div>
     <div class="mini">
       <div><b>${c.chicos}</b><span>Medallas</span></div>
-      <div><b>${c.otros}</b><span>Sin actividad</span></div>
-      <div><b>${c.acomp}</b><span>Otros sin nombre</span></div>
+      <div><b>${c.otros}</b><span>Socios</span></div>
+      <div><b>${c.acomp}</b><span>Acompañantes</span></div>
     </div>
     ${cards}
     <div class="acciones">
@@ -432,7 +434,7 @@ function excel(){
   const res = [["CRC · Fiesta Fin de Temporada 2026 — generado " + hoy()], [],
     ["Grupo","Personas"]];
   Object.entries(ACTIVIDADES).forEach(([k,a]) => res.push([a.plural || a.nombre, c.r[k].nombres.length]));
-  res.push(["Otros sin nombre (abuelos, amigos…)", c.acomp]);
+  res.push(["Acompañantes", c.acomp]);
   res.push(["TOTAL PERSONAS", c.total]);
   res.push([]);
   res.push(["Medallas", c.chicos]);
@@ -477,7 +479,7 @@ function pdfResumen(){
   const c = calcular();
   const filas = Object.entries(ACTIVIDADES).map(([k,a]) => { const x = c.r[k];
     return `<tr><td>${a.plural || a.nombre}</td><td class="c">${x.nombres.length}</td></tr>`; }).join("")
-    + `<tr><td>Otros sin nombre (abuelos, amigos…)</td><td class="c">${c.acomp}</td></tr>`;
+    + `<tr><td>Acompañantes</td><td class="c">${c.acomp}</td></tr>`;
   imprimir(`${cabecera()}
     <div class="p-tit">Resumen de asistencia</div>
     <div class="p-sub">${pl(c.total,'persona confirmada','personas confirmadas')}</div>
